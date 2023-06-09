@@ -1,5 +1,5 @@
 # ==========================формирование документа из шаблона===========================================================
-#
+# значения переменных читаются из БД PostgreSQL по шаблону и пишутся в файл <file_name><дата время>
 import os
 from sys import argv, exit
 import datetime
@@ -8,13 +8,14 @@ import psycopg2
 import openpyxl
 
 try:
-  prname, file_name = argv
+  prname, file_name,WorkDoc,WorkBPR,WorkBP,WorkENTP = argv
   varvel = [] # данные переменной из БД [переменная,значение,тип ]
   strnow = '' # текущий день и время
 #==========================читаем из БД значение переменной=============================================================
-  def get_var_val(s):# считать значение переменной из БД s - переменная
+  def get_var_val(s,di,bpr,bp,entp):# считать значение переменной из БД s - переменная
      ss = f"'{s}'"
-     sa = 'select docp_p,docp_v,docp_t,docp_r,docp_c from docp where docp_p='+ss
+     sa = 'select docp_p,docp_v,docp_t,docp_r,docp_c from docp where docp_p='+ss+' and doc_id ='+di+' and bpr_id ='+bpr+ \
+          ' and bp_id =' + bp +' and entp_id ='+entp
      cursor.execute(sa)
      return cursor.fetchone()
 #============================находим переменную и ее значение===========================================================
@@ -31,9 +32,22 @@ try:
                 return  -1
               else:
                 ss = s[m:n + 1]   # ключ
-                varvel = get_var_val(ss)
+                wd = str(WorkDoc)
+                wr = str(WorkBPR)
+                wp = str(WorkBP)
+                we = str(WorkENTP)
+                if ss[2] == 'E':
+                  wd = '0'
+                  wr = '0'
+                  wp = '0'
+                elif ss[2] == 'P':
+                  wd = '0'
+                  wr = '0'
+                elif ss[2] == 'R':
+                  wd = '0'
+                varvel = get_var_val(ss,wd,wr,wp,we)
                 if (varvel == None) or (varvel[1] == None):
-                  print('значение переменной '+ss+' не задано')
+#                  print('значение переменной '+ss+' не задано')
                   return -1
                 if varvel[2] == 'serial':
                   i = int(varvel[1])
