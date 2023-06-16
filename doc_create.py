@@ -18,6 +18,7 @@ try:
           ' and bp_id =' + bp +' and entp_id ='+entp
      cursor.execute(sa)
      return cursor.fetchone()
+
 #============================находим переменную и ее значение===========================================================
   def var_rep(s):
       m = 0
@@ -81,7 +82,7 @@ try:
             for tab in doc.tables:
                 for ro in tab.rows:
                    for cell in ro.cells:
-                       if len(cell.text) > 4:
+                       if len(cell.text) > 3:
                           if var_rep(cell.text) == 0:
                              cell.text = cell.text.replace(varvel[0],varvel[1])
          doc.save(name)
@@ -98,7 +99,7 @@ try:
       #            for sel in range(num_cells):
       #                val = worksheet.cell_value(row, sel)
       #                if val != None:
-      #                  if (len(val) > 4):
+      #                  if (len(val) > 3):
       #                     var_rep(val)
       #        workbook.save(name)
 #------------------------------------openpyxl---------------------------------------------------------------------------
@@ -111,7 +112,7 @@ try:
                  sel += 1
                  val = sheet.cell(row, sel).value
                  if val != None:
-                   if (len(val) > 4):
+                   if (len(val) > 3):
                       if var_rep(val) == 0:
                          sheet.cell(row,sel).value = sheet.cell(row,sel).value.replace(varvel[0],varvel[1])
          workbook.save(name)
@@ -130,5 +131,8 @@ try:
   exit(0)
 
 except FileNotFoundError:
-     print('file not found-' + file_name)
-     exit(-1)
+       print('file not found-' + file_name)
+       exit(-1)
+except psycopg2.Error:
+       print ('ошибка БД')
+       exit(-1)

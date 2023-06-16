@@ -1,6 +1,8 @@
 # выделение из шаблона документа переменных замены, их описания, координаты в таблице -> запись в БД таблицы DOCP
 # шаблон должен быть в виде таблицы, в шаблоне каждая переменная должна быть в отдельной ячейке таблицы
 # 09/06/23 добавил запись в файл <file_name>.var (txt) <имя переменной> <row> <column> для txt файла column - позиция в строке
+# 12.06.23 убрал запись в файл - не давал редактировать таблицу переменных. Пишу номер документа в docp_v всех переменных шаблона
+# и вывожу их для редактирования
 
 import os
 import re
@@ -20,16 +22,16 @@ try:
   sss = ''
   pr_cell = ''
   bef_cell = '' # текст перед переменной
-  aft_cell = '' # текс после переменной
+  aft_cell = '' # текст после переменной
   row = 0  # номер строки переменной замены
   sel = 0  # номер ячейки в строке
 
 #  создаем файл переменных документа <file_name.var>=<имя>#9<row>#9<column>
   ext = os.path.splitext(file_name)
-  fv = file_name.replace(ext[1], '.var')
-  with open(fv, 'w', encoding='UTF-8') as fw:
+#  fv = file_name.replace(ext[1], '.var')
+#  with open(fv, 'w', encoding='UTF-8') as fw:
 #=================поиск переменных в строке и запись их в БД============================================
-    def ParAdd(s,doc=False):
+  def ParAdd(s,doc=False):
       global WorkDoc, row, sel, bef_cell, aft_cell,fw
       n = 0
       j = 0
@@ -89,12 +91,21 @@ try:
             sa = 'insert into docp (docp_p,docp_d,docp_t,docp_r,docp_c,doc_id,bpr_id,bp_id,entp_id) values ('\
                  + ss + ',' + sb + ',' + typ+','+str(row)+','+str(sel)+','+ wd+','+wr+','+wp+','+we+') on conflict do nothing'
             cursor.execute(sa)
-            fw.writelines(sn+' '+str(row)+' '+str(sel)+'\n')
+            sa='SELECT  docp_id from docp where  docp_p='+ ss + ' and doc_id='+ wd+' and bpr_id='+wr+\
+               ' and bp_id='+wp+' and entp_id='+we
+            cursor.execute(sa)
+            id = cursor.fetchone()
+            if id == None:
+               return -1
+            ids = str(id[0])
+            sa = 'insert into docpv (docp_id,doc_id) values (' +ids+','+str(WorkDoc)+ ') on conflict do nothing'
+            cursor.execute(sa)
+#            fw.writelines(sn+' '+str(row)+' '+str(sel)+'\n')
             ret = 0
         j = n + 1
       return ret
   #=====================================================================================================================
-    def GetPL(file_name):
+  def GetPL(file_name):
         global WorkDoc, row, sel, bef_cell, aft_cell
   #=================обработка файлов txt============================================================================
         if ext[1] in ['.txt', '.html']:
@@ -118,18 +129,19 @@ try:
            n = len(doc.tables)    # кол.таблиц
            if n > 0: #
              for tab in doc.tables:
-                nn = len(tab.rows)
+                nr = len(tab.rows)-1
                 row = 0
                 for ro in tab.rows:
+                   nc = len(ro.cells)-1
                    row += 1
                    bef_cell = ''
                    aft_cell = ''
-                   sel = 0
+                   sel = -1
                    for cell in ro.cells:
                        sel += 1
                        s = cell.text
-                       if (len(s) > 4) and (s != bef_cell):   # not in [pr_cell,'.',',']:
-                          if row < nn:
+                       if (len(s) > 3) and (s != bef_cell):   # not in [pr_cell,'.',',']:
+                          if (row < nr) and (sel < nc):
                             ce = tab.cell(row,sel)
                             if ce != None:
                                aft_cell = ce.text
@@ -151,7 +163,7 @@ try:
                      val = worksheet.cell_value(row, sel)
                      sel += 1
                      if val != None:
-                       if (len(val) > 2) and (val != pr_cell):
+                       if (len(val) > 3) and (val != pr_cell):
                           ParAdd(val)
                      #     print(val)
                           pr_cell = val
@@ -166,21 +178,21 @@ try:
                  sel += 1
                  val = sheet.cell(row, sel).value
                  if val != None:
-                   if (len(val) > 4) and (val != pr_cell):
+                   if (len(val) > 3) and (val != pr_cell):
                       ParAdd(val)
                     #  print(val)
                       pr_cell = val
 #=========================основная программа============================================================================
-    conn = psycopg2.connect(host='localhost', database='BP', user='postgres', password='rfn15')
+  conn = psycopg2.connect(host='localhost', database='BP', user='postgres', password='rfn15')
 # Получаем объект курсора для выполнения SQL-запросов
-    cursor = conn.cursor()
-    conn.autocommit = True
-    GetPL(file_name)
-    cursor.close()
-    conn.close()
-    exit(0)
+  cursor = conn.cursor()
+  conn.autocommit = True
+  GetPL(file_name)
+  cursor.close()
+  conn.close()
+  exit(0)
 except FileNotFoundError:
-     print('file not found-' + file_name)
+     print('файл не найден-' + file_name)
      exit(-1)
 
 except psycopg2.Error:

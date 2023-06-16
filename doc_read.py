@@ -81,7 +81,7 @@ try:
                 n += 1     # номер таблицы
                 for ro in tab.rows:
                     for cell in ro.cells:
-                        if len(cell.text) > 4:
+                        if len(cell.text) > 3:
                            if var_find(cell.text) == 0: # находим переменную в шаблоне
                               table = doc.tables[n]
                               s = table.cell(varvel[3]-1,varvel[4]-1).text
@@ -97,7 +97,7 @@ try:
                  sel += 1
                  val = sheet.cell(row, sel).value
                  if val != None:
-                   if (len(val) > 4):
+                   if (len(val) > 3):
                       if var_find(val) == 0:
                          sheet.cell(row,sel).value = sheet.cell(row,sel).value.replace(varvel[0],varvel[1])
 
