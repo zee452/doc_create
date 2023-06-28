@@ -8,36 +8,28 @@ import openpyxl
 
 try:
   prname, file_name,file_templ,WorkDoc,WorkBPR,WorkBP,WorkENTP = argv    # соответствующий файлу шаблон
-  varvel = [] # данные переменной из БД [переменная,значение,тип ]
+  varvel = [] # данные переменной из БД [переменная,значение,тип, координаты и id  в таблице docp ]
 
 #==========================читаем из БД значение переменной=============================================================
+
   def get_var_val(s):# считать атрибуты переменной из БД s - имя переменной
      ss = f"'{s}'"
-     sa = 'select docp_p,docp_v,docp_t,docp_r,docp_c from docp where docp_p='+ss
-     cursor.execute(sa)
-     return cursor.fetchone()
-  def save_bd(s):# записать значение переменной в БД
-     ss = f"'{s}'"
-     sss = f"'{varvel[0]}'"
      wd = str(WorkDoc)
-     wr = str(WorkBPR)
      wp = str(WorkBP)
      we = str(WorkENTP)
-     if varvel[0][2] == 'E':
+     if s[2] == 'E':
          wd = '0'
-         wr = '0'
          wp = '0'
-     elif varvel[0][2] == 'P':
+     elif s[2] == 'P':
          wd = '0'
-         wr = '0'
-     elif varvel[0][2] == 'R':
+     elif s[2] == 'R':
          wd = '0'
-     sa = 'update docp set docp_v='+ss+' where docp_p='+sss+' and doc_id ='+wd+' and bpr_id ='+wr+ \
-          ' and bp_id =' + wp +' and entp_id ='+we
+     sa = 'select docp_p,docp_v,docp_t,docp_r,docp_c,docp_id from docp where docp_p='+ss+ ' and doc_id ='+wd+\
+          ' and bp_id =' + wp + ' and entp_id ='+we
      cursor.execute(sa)
-
-#============================находим переменную ее значение и координаты в таблице======================================
-  def var_find(s):
+     return cursor.fetchone()
+# ============================находим переменную ее значение и координаты в таблице======================================
+  def var_find(s):  # s- поле шаблона
       m = 0
       n = 0
       global varvel, cell
@@ -46,17 +38,36 @@ try:
           if m != -1:
               n = s.find('}', m + 1)
               if n == -1:
-                print(' ошибка в шаблоне ${..')
-                return  -1
-              else:
-                ss = s[m:n + 1]           # имя переменной
-                varvel = get_var_val(ss)  # находим ее атрибуты
-                if  (varvel[1] != None):
-                  print('значение переменной '+ss+'  задано')
+                  print(' ошибка в шаблоне ${..')
                   return -1
-                return 0
+              else:
+                  ss = s[m:n + 1]  # имя переменной
+                  varvel = get_var_val(ss)  # находим ее атрибуты
+                  if varvel != None:
+                      return 0
+                  else:
+                      return -1
           else:
               return -1
+  # ===================запись значения переменной в БД==================================================================
+  def save_bd(s):           # записать значение переменной в БД
+     ss = f"'{s}'"          # значение переменной docpv_v
+     sss = f"'{varvel[5]}'" # docp_id
+     wd = str(WorkDoc)
+     wr = str(WorkBPR)
+
+     if varvel[0][2] == 'E':
+         sa = 'update docpv set docpv_v=' + ss + ' where docp_id=' + sss + ' and bpr_id <> 0'
+     elif varvel[0][2] == 'P':
+         sa = 'update docpv set docpv_v=' + ss + ' where docp_id=' + sss + ' and bpr_id <> 0'
+     elif varvel[0][2] == 'R':
+         sa = 'update docpv set docpv_v=' + ss + ' where docp_id=' + sss + ' and bpr_id =' + wr
+     else:
+         sa = 'update docpv set docpv_v=' + ss + ' where docp_id=' + sss + ' and bpr_id =' + wr + ' and doc_id ='+wd
+
+     cursor.execute(sa)
+
+
 #============================чтение  документа  по шаблону=============================================================
   def doc_read(file_name,file_templ):
 #------------------------------обработка файлов txt---------------------------------------------------------------------
@@ -79,13 +90,23 @@ try:
             n = -1
             for tab in tmp.tables:
                 n += 1     # номер таблицы
+                r = -1
+                table = doc.tables[n]
                 for ro in tab.rows:
+                    r += 1
+                    pred = ''
+                    k = -1
                     for cell in ro.cells:
+                        k +=1
+                        # s = cell.text
+                        # table = doc.tables[n]
+                        # ss = table.cell(r - 1, k).text
                         if len(cell.text) > 3:
                            if var_find(cell.text) == 0: # находим переменную в шаблоне
-                              table = doc.tables[n]
-                              s = table.cell(varvel[3]-1,varvel[4]-1).text
-                              save_bd(s)
+                              if varvel[0] != pred:
+                                s = table.cell(r,k).text
+                                save_bd(s)       # значение переменной
+                                pred = varvel[0]
 
 #------------------------------------openpyxl---------------------------------------------------------------------------
       if ext[1] =='.xlsx':
@@ -102,6 +123,7 @@ try:
                          sheet.cell(row,sel).value = sheet.cell(row,sel).value.replace(varvel[0],varvel[1])
 
  #======================основная программа=============================================================================
+  print('Идет запись данных в БД. Ждите...')
   conn = psycopg2.connect(host='localhost', database='BP', user='postgres', password='rfn15')
   # Получаем объект курсора для выполнения SQL-запросов
   cursor = conn.cursor()
