@@ -69,7 +69,7 @@ try:
                 elif ss[2] == 'R':
                   wd = '0'
                 varvel = get_var_val(ss)
-                if (varvel == None):
+                if (varvel == None) or (vv[0] == None):
 #                  print('значение переменной '+ss+' не задано')
                   return -1
                 if varvel[2] == 'serial':
@@ -154,7 +154,8 @@ try:
   pat =os.path.dirname(file_name)
   nn = ext[0][file_name.rfind('\\')+1:]
   l = len(pat)
-  name = pat[0:l-9]+'BPR_'+str(WorkBPR)+'\\'+nn+' '+strnow + ext[1]
+  name = pat[0:l-7]+'BPR_'+str(WorkBPR)+'\\'+nn+' '+strnow + ext[1]
+  name = f"{name}"
   doc_cr(file_name)
   cursor.close()
   conn.close()
