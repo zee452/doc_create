@@ -1,4 +1,4 @@
-# ========================= чтение данных из всех бланков БП и запись их в docb без имен пппеременных+==================
+# ========================= чтение данных из всех бланков БП и запись их в docb без имен переменных   ==================
 import os
 from sys import argv, exit
 import docx
@@ -24,17 +24,8 @@ try:
       sa = 'insert into docb (docb_d,docb_r,docb_c,docb_p,doc_name) values ('+ss+ ',' + str(r) + ',' + \
             str(c)+','+str(crc)+','+docs+') on conflict do nothing'
       cursor.execute(sa)
- # =======================================================================================================================
- #  создание таблицы docp b docpv
-  def docp_cr():  # s -описание t- имя переменной
-      ss = f"'{s}'"
-      docs = f"'{os.path.basename(doc)}'"
-      sa = 'insert into docb (docb_d,docb_r,docb_c,docb_p,doc_name) values (' + ss + ',' + str(r) + ',' + \
-           str(c) + ',' + str(crc) + ',' + docs + ') on conflict do nothing'
-      cursor.execute(sa)
 
-
-  #============================анализ бланка и создание переменной и ее атрибутов=========================================
+#============================анализ бланка и создание переменной и ее атрибутов=======================================
   def var_cr(file_name):
 #-------------------------------python-docx----------------------------------------------------------------------------
       if ext[1] in ['.odf','.docx']:
@@ -95,7 +86,6 @@ try:
       file_name = dir_name+'\\'+file_name
       ext = os.path.splitext(file_name)
       var_cr(file_name)
-  docp_cr()
   cursor.close()
   conn.close()
   exit(0)
